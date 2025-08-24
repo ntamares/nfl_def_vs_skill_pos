@@ -1,0 +1,58 @@
+digraph NFL_Schema {
+	concentrate=true nodesep=1.0 rankdir=LR splines=ortho
+	teams [label="{
+refdata.teams|
++ team_id (PK)|
+api_id (UQ)|
+scraper_id (UQ)|
+team_name|
+abbreviation|
+city
+}" shape=record]
+	players [label="{
+refdata.players|
++ player_id (PK)|
+api_id (UQ)|
+scraper_id (UQ)|
+full_name|
+position|
+birthdate
+}" shape=record]
+	player_teams [label="{
+refdata.player_teams|
++ player_team_id (PK)|
+player_id (FK)|
+team_id (FK)|
+season|
+week
+}" shape=record]
+	games [label="{
+stats.games|
++ game_id (PK)|
+season|
+week|
+home_team_id (FK)|
+away_team_id (FK)
+}" shape=record]
+	player_weekly_stats [label="{
+stats.player_weekly_stats|
++ player_weekly_stats_id (PK)|
+player_id (FK)|
+team_id (FK)|
+game_id (FK)|
+season|
+week|
+depth_chart_rank|
+pass_cmp, pass_att, pass_yds, pass_td, pass_int|
+rush_att, rush_yds, rush_td|
+rec_tgt, rec_rec, rec_yds, rec_td|
+rec_rz_tgt|
+fumbles_lost
+}" shape=record]
+	players -> player_teams [label="1..*"]
+	teams -> player_teams [label="1..*"]
+	teams -> games [label="home/away"]
+	teams -> player_weekly_stats [label="1..*"]
+	players -> player_weekly_stats [label="1..*"]
+	games -> player_weekly_stats [label="1..*"]
+}
