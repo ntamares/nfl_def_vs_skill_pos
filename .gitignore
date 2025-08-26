@@ -25,3 +25,6 @@ Thumbs.db
 
 # Other
 .refdata/
+open_venv.bat
+src/config/*.env
+.data/
