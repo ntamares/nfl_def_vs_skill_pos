@@ -12,6 +12,8 @@ env/
 
 # Environment variables
 .env
+.env.dev
+.env.prod
 
 # VSCode settings
 .vscode/

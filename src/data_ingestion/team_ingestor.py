@@ -12,13 +12,13 @@ class TeamIngestor():
         load_dotenv(dotenv_path=env_path)
         self.base_url = os.getenv("NFL_BASE_API_URL")
         self.api_key = os.getenv("NFL_API_KEY")
-        self.endpoint = "/teams.json"
+        self.endpoint = "league/teams.json"
         self.headers = {
             "accept": "application/json",
             "x-api-key": self.api_key
         }
 
-    def fetch_data(self):
+    def fetch_data(self) -> dict:
         url = f"{self.base_url}{self.endpoint}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
@@ -36,7 +36,7 @@ class TeamIngestor():
 
         print(f"Saved raw data to {filename}")
 
-    def insert_data(self, data):
+    def insert_team(self, data):
         query = """
             INSERT INTO refdata.team 
             (team_sr_uuid, team_name, team_market, team_abbreviation)
@@ -62,10 +62,9 @@ class TeamIngestor():
 
     def run(self):
         data = self.fetch_data()
-        # Only save raw JSON if running in DEV environment
         if os.getenv("ENVIRONMENT", "DEV").upper() == "DEV":
             self.save_raw_json(data)
-        self.insert_data(data)
+        self.insert_team(data)
 
 
 if __name__ == "__main__":
