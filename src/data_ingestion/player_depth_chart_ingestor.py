@@ -34,14 +34,6 @@ class PlayerDepthChartIngestor():
 
         print(f"Saved raw data to {filename}")    
     
-    def player_exists(self, conn, player_id: int) -> bool:
-        with conn.cursor() as cur:
-            cur.execute("""
-                select exists (
-                    select 1 from refdata.player where player_sr_uuid = %s
-                )
-            """, (player_id,))
-            return cur.fetchone()[0]
 
     def insert_player(self, conn, player_row):
         query = """
@@ -160,23 +152,20 @@ class PlayerDepthChartIngestor():
                 
                 for player_row in players:
                     print(f"Processing player: {player_row['name']} (sr_uuid: {player_row['player_sr_uuid']})")
-                    exists = self.player_exists(conn, player_row["player_sr_uuid"])
-                    print(f"Exists in DB: {exists}")
                     
-                    if not exists:
-                        try:
-                            self.insert_player(conn, player_row)
-                        except Exception as e:
-                            print(f"Error inserting player {player_row['name']}: {e}")
-                            
+                    try:
+                        self.insert_player(conn, player_row)
+                    except Exception as e:
+                        print(f"Error inserting player {player_row['name']}: {e}")
+                        
                     rank = player_row["rank"] if player_row["rank"] is not None else -1
                    
                     if rank == -1:
-                        print(f"Warning: No rank for player {player_row['name']} ({player_row['player_sr_uuid']}) - using default -1")
+                        print(f"Warning: No rank for player {player_row["name"]} ({player_row['player_sr_uuid']}) - using default -1")
                     
                     # maintain data integrity when we the rank is missing 
-                    # and we need to set it to 0
-                    # looking at you SR
+                    # and we need to set it to -1
+                    # looking at you 2024 week 16 Jared Wayne
                     player_row_copy = dict(player_row)
                     player_row_copy["rank"] = rank
                     

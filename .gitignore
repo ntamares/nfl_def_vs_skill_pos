@@ -30,3 +30,4 @@ Thumbs.db
 open_venv.bat
 src/config/*.env
 .data/
+.meta_coordination/
