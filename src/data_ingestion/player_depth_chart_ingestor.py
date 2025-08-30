@@ -5,6 +5,7 @@ from pathlib import Path
 from utils.db import safe_connection
 from utils.time import utc_now
 from dotenv import load_dotenv
+import time
 
 class PlayerDepthChartIngestor():
     def __init__(self):
@@ -69,7 +70,7 @@ class PlayerDepthChartIngestor():
                     db_team_id,
                     player_row["position"],
                     player_row["player_sr_uuid"],
-                    player_row["jersey"],
+                    player_row["jersey"]
                 ),
             )
             
@@ -119,6 +120,7 @@ class PlayerDepthChartIngestor():
     def run(self):
         with safe_connection() as conn:
             year = 2024 
+            
             for i in range(1, 19):
                 endpoint = self.endpoint_template.format(year=year, week=i)
                 url = f"{self.base_url}{endpoint}"
@@ -160,12 +162,10 @@ class PlayerDepthChartIngestor():
                         
                     rank = player_row["rank"] if player_row["rank"] is not None else -1
                    
+                    # looking at you 2024 week 16 Jared Wayne
                     if rank == -1:
                         print(f"Warning: No rank for player {player_row["name"]} ({player_row['player_sr_uuid']}) - using default -1")
                     
-                    # maintain data integrity when we the rank is missing 
-                    # and we need to set it to -1
-                    # looking at you 2024 week 16 Jared Wayne
                     player_row_copy = dict(player_row)
                     player_row_copy["rank"] = rank
                     

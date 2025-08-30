@@ -14,20 +14,20 @@ class BaseIngestor:
         load_dotenv(dotenv_path=env_path)
         self.base_url = os.getenv("NFL_BASE_API_URL")
         self.api_key = os.getenv("NFL_API_KEY")
-        # self.settings = Settings()
+        self.settings = Settings()
         self.headers = {
             "accept": "application/json",
             "x-api-key": self.api_key
         }
 
-        # if self.settings.environment.upper() == "PROD":
-        #     confirm = input(
-        #         "⚠️ You are about to run against PROD."
-        #         "Type 'yes' to continue: "
-        #     )
-        #     if confirm.lower() != "yes":
-        #         print("❌ Aborted.")
-        #         sys.exit(1)        I 
+        if os.getenv("ENVIRONMENT", "PROD").upper() == "PROD":
+            confirm = input(
+                "⚠️ You are about to run against PROD."
+                "Type 'yes' to continue: "
+            )
+            if confirm.lower() != "yes":
+                print("❌ Aborted.")
+                sys.exit(1)     
     
     def fetch_data(self,  url: str) -> dict:
         response = requests.get(url, headers=self.headers)
@@ -45,7 +45,6 @@ class BaseIngestor:
 
         print(f"Saved raw data to {filename}")   
 
-    def close(self):
-        """Close the DB connection."""
-        if self.conn:
-            self.conn.close()
+    # def close(self, conn):
+    #     if self.conn:
+    #         self.conn.close()

@@ -94,8 +94,11 @@ class WeeksGamesIngestor(BaseIngestor):
                     "week_end_date": max(game_dates)
                 }
                 
-                self.insert_week(conn, week_row)
-                
+                try:
+                    self.insert_week(conn, week_row)
+                except Exception as e:
+                        print(f"Error inserting player {week_row["week_sr_uuid"]}: {e}")
+                        
                 with conn.cursor() as cur:
                     cur.execute("""
                                 select week_id from refdata.week 
