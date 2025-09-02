@@ -1,53 +1,35 @@
 import os
 import json
-import requests
-from pathlib import Path
 from utils.db import safe_connection
 from utils.time import utc_now
-from dotenv import load_dotenv
+from .base_ingestor import BaseIngestor
 
-class TeamIngestor():
+class TeamIngestor(BaseIngestor):
     def __init__(self):
-        env_path = Path(__file__).parents[2] / ".env"
-        load_dotenv(dotenv_path=env_path)
-        self.base_url = os.getenv("NFL_BASE_API_URL")
-        self.api_key = os.getenv("NFL_API_KEY")
+        super().__init__()
         self.endpoint = "league/teams.json"
-        self.headers = {
-            "accept": "application/json",
-            "x-api-key": self.api_key
-        }
-
-    def fetch_data(self) -> dict:
-        url = f"{self.base_url}{self.endpoint}"
-        response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
-        return response.json()
 
     def save_raw_json(self, data):
-        folder = os.path.join("data", "teams")
-        os.makedirs(folder, exist_ok=True)
-
-        timestamp = utc_now().strftime("%Y%m%d_%H%M%S")
-        filename = os.path.join(folder, f"teams_{timestamp}.json")
-
-        with open(filename, "w") as f:
-            json.dump(data, f, indent=2)
-
-        print(f"Saved raw data to {filename}")
+        super().save_raw_json(data, "teams")
 
     def insert_team(self, data):
         query = """
-            INSERT INTO refdata.team 
+            insert into refdata.team 
             (team_sr_uuid, team_name, team_market, team_abbreviation)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (team_sr_uuid) DO NOTHING;
+            values (%s, %s, %s, %s)
+            on conflict (team_sr_uuid) do nothing;
         """
 
         with safe_connection() as conn:
+            valid_teams = [
+                team for team in data.get("teams", [])
+                if team.get("name") != "TBD"
+            ]
+            
+            inserted_count = 0
             with conn.cursor() as cur:
-                for team in data.get("teams", []):
-                    if (team["name"] != "TBD"):
+                for team in valid_teams:
+                    try:
                         cur.execute(
                             query,
                             (
@@ -57,13 +39,20 @@ class TeamIngestor():
                                 team["alias"],
                             ),
                         )
+                        inserted_count += 1
+                    except Exception as e:
+                        print(f"Error inserting team {team.get('name', 'unknown')}: {e}")
+            
             conn.commit()
-            print(f"✅ Inserted {len(data.get('teams', []))} teams")
+            print(f"✅ Inserted {inserted_count} teams out of {len(valid_teams)} valid teams")
 
     def run(self):
-        data = self.fetch_data()
+        url = f"{self.base_url}{self.endpoint}"
+        data = self.fetch_data(url)
+        
         if os.getenv("ENVIRONMENT", "DEV").upper() == "DEV":
             self.save_raw_json(data)
+        
         self.insert_team(data)
 
 

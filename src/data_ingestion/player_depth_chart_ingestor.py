@@ -1,78 +1,16 @@
 import os
 import json
-import requests
-from pathlib import Path
 from utils.db import safe_connection
 from utils.time import utc_now
-from dotenv import load_dotenv
-import time
+from .base_ingestor import BaseIngestor
 
-class PlayerDepthChartIngestor():
+class PlayerDepthChartIngestor(BaseIngestor):
     def __init__(self):
-        env_path = Path(__file__).parents[2] / ".env"
-        load_dotenv(dotenv_path=env_path)
-        self.base_url = os.getenv("NFL_BASE_API_URL")
-        self.api_key = os.getenv("NFL_API_KEY")
+        super().__init__()
         self.endpoint_template = "seasons/{year}/REG/{week:02d}/depth_charts.json"
-        self.headers = {
-            "accept": "application/json",
-            "x-api-key": self.api_key
-        }
 
-    def fetch_data(self,  url: str) -> dict:
-        response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
-        return response.json()
-    
     def save_raw_json(self, data):
-        folder = os.path.join("data", "depth_charts")
-        os.makedirs(folder, exist_ok=True)
-        timestamp = utc_now().strftime("%Y%m%d_%H%M%S")
-        filename = os.path.join(folder, f"depth_charts_{timestamp}.json")
-
-        with open(filename, "w") as f:
-            json.dump(data, f, indent=2)
-
-        print(f"Saved raw data to {filename}")    
-    
-
-    def insert_player(self, conn, player_row):
-        query = """
-            insert into refdata.player 
-            (
-                player_name, 
-                player_first_name, 
-                player_last_name, 
-                player_team_id, 
-                player_position, 
-                player_sr_uuid, 
-                player_number
-             )
-            values (%s, %s, %s, %s, %s, %s, %s)
-            on conflict (player_sr_uuid) do nothing;
-        """
-        name_parts = player_row["name"].split(' ', 1)
-        first_name = name_parts[0]
-        last_name = name_parts[1] if len(name_parts) > 1 else ''
-        
-        with conn.cursor() as cur:
-            cur.execute("""
-                select team_id from refdata.team where team_sr_uuid = %s
-            """, (player_row["team_id"],))
-            team_row = cur.fetchone()
-            db_team_id = team_row[0] if team_row else None
-            cur.execute(
-                query,
-                (
-                    player_row["name"],
-                    first_name,
-                    last_name,
-                    db_team_id,
-                    player_row["position"],
-                    player_row["player_sr_uuid"],
-                    player_row["jersey"]
-                ),
-            )
+        super().save_raw_json(data, "depth_charts")
             
     def insert_depth_chart(self, conn, player_row):
         query = """
@@ -92,17 +30,10 @@ class PlayerDepthChartIngestor():
         """
         
         with conn.cursor() as cur:
-            cur.execute("""
-                select team_id from refdata.team where team_sr_uuid = %s
-            """, (player_row["team_id"],))
-            team_row = cur.fetchone()
-            db_team_id = team_row[0] if team_row else None
+            team_map = self.get_team_map(conn)
+            db_team_id = team_map.get(player_row["team_id"])
             
-            cur.execute("""
-                select player_id from refdata.player where player_sr_uuid = %s
-            """, (player_row["player_sr_uuid"],))
-            player_id_row = cur.fetchone()
-            db_player_id = player_id_row[0] if player_id_row else None
+            db_player_id = self.get_player_id(conn, player_row["player_sr_uuid"])
             
             cur.execute(
                 query,
@@ -129,6 +60,7 @@ class PlayerDepthChartIngestor():
                 if os.getenv("ENVIRONMENT", "DEV").upper() == "DEV":
                     self.save_raw_json(data)
                     
+                # Extract player data with normalized rank
                 players = [
                     {
                         "team_id": team["id"],
@@ -136,7 +68,7 @@ class PlayerDepthChartIngestor():
                         "name": player["name"],
                         "position": player["position"], # e.g., WR, RB, etc.
                         "position_alignment": pos["position"].get("name"),  # e.g., LWR, WR, RWR
-                        "rank": player.get("depth"),
+                        "rank": player.get("depth") if player.get("depth") is not None else -1,
                         "jersey": player.get("jersey"),
                         "year": data["season"]["year"] if "season" in data 
                             and "year" in data["season"] else None,
@@ -152,25 +84,21 @@ class PlayerDepthChartIngestor():
                 
                 print(f"Found {len(players)} players to process")
                 
+                # First, insert all players
                 for player_row in players:
-                    print(f"Processing player: {player_row['name']} (sr_uuid: {player_row['player_sr_uuid']})")
-                    
                     try:
                         self.insert_player(conn, player_row)
                     except Exception as e:
                         print(f"Error inserting player {player_row['name']}: {e}")
-                        
-                    rank = player_row["rank"] if player_row["rank"] is not None else -1
-                   
-                    # looking at you 2024 week 16 Jared Wayne
-                    if rank == -1:
-                        print(f"Warning: No rank for player {player_row["name"]} ({player_row['player_sr_uuid']}) - using default -1")
-                    
-                    player_row_copy = dict(player_row)
-                    player_row_copy["rank"] = rank
+                
+                # Then, insert all depth chart entries
+                for player_row in players:
+                    # Log warnings for players with default rank
+                    if player_row["rank"] == -1:
+                        print(f"Warning: No rank for player {player_row['name']} ({player_row['player_sr_uuid']}) - using default -1")
                     
                     try:
-                        self.insert_depth_chart(conn, player_row_copy)
+                        self.insert_depth_chart(conn, player_row)
                     except Exception as e:
                         print(f"Error inserting depth chart for player {player_row['name']}: {e}")
             conn.commit()

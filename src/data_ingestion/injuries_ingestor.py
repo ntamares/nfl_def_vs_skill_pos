@@ -2,7 +2,6 @@ import os
 from .base_ingestor import BaseIngestor
 from datetime import datetime
 from utils.db import safe_connection
-from .player_depth_chart_ingestor import PlayerDepthChartIngestor
 import time
 import requests
 
@@ -70,11 +69,14 @@ class InjuriesIngestor(BaseIngestor):
                                     where week_sr_uuid = %s""", (data["week"].get("id"),))
                         inj_week_db_id = cur.fetchone()[0]
                         
+                        # Create a map of status codes for practice participation
                         status_map = {
                             "Did Not Participate In Practice": "DNP",
                             "Limited Participation In Practice": "Limited",
                             "Full Participation In Practice": "Full"
                         }
+                        
+                        # Get team ID from database
                         team_db_id = None
                         cur.execute("""
                             select team_id from refdata.team 
@@ -86,16 +88,19 @@ class InjuriesIngestor(BaseIngestor):
                             print(f"Team not found in DB: SR UUID={team['id']}")
                             continue
 
+                    # Process all players for this team
                     for player in team["players"]:
+                        # Get or create player in database
                         with conn.cursor() as cur:
-                            player_db_id = None
                             cur.execute("""
                                 select player_id from refdata.player 
                                 where player_sr_uuid = %s""", (player.get("id"),))
                             result = cur.fetchone()
+                            
                             if result is not None:
                                 player_db_id = result[0]
                             else:
+                                # Player not found, create it
                                 player_row = {
                                     "name": player["name"],
                                     "position": player["position"],
@@ -104,13 +109,15 @@ class InjuriesIngestor(BaseIngestor):
                                     "team_id": team.get("id")
                                 }
                                 
-                                ingestor = PlayerDepthChartIngestor()
                                 try:
-                                    ingestor.insert_player(conn, player_row)
+                                    player_db_id = self.insert_player(conn, player_row)
+                                    print(f"Inserted player {player['name']} with ID {player_db_id}")
                                 except Exception as e:
-                                     print(f"Error inserting player {player["id"]}: {e}")
+                                     print(f"Error inserting player {player['id']}: {e}")
                         
+                        # Process injuries for this player if we have a valid player ID
                         if player_db_id is not None:
+                            # Create injury records using list comprehension
                             injuries = [
                                 {
                                     "inj_player_id": player_db_id,
@@ -119,19 +126,20 @@ class InjuriesIngestor(BaseIngestor):
                                     "inj_week": i,
                                     "inj_status": injury.get("status", "Healthy"),
                                     "inj_status_date": datetime.fromisoformat(injury.get("status_date", "1970-01-01T00:00:00Z").replace("Z", "+00:00")),
-                                    "inj_primary_injury": injury.get("primary",),
+                                    "inj_primary_injury": injury.get("primary"),
                                     "inj_week_id": inj_week_db_id,
-                                   "inj_practice_participation": status_map[injury["practice"]["status"]]
+                                    "inj_practice_participation": status_map.get(injury["practice"]["status"], "Unknown")
                                 }
                                 for injury in player.get("injuries", [])
-                                if "practice" in injury and "status" in injury["practice"]
+                                if "practice" in injury and "status" in injury["practice"] and injury["practice"]["status"] in status_map
                             ]
-                        
-                        for inj in injuries:
-                            try:
-                                self.insert_injury(conn, inj)
-                            except Exception as e:
-                                print(f"Error inserting injury for player {inj["inj_player_id"]}: {e}")
+                            
+                            # Insert all injury records for this player
+                            for inj in injuries:
+                                try:
+                                    self.insert_injury(conn, inj)
+                                except Exception as e:
+                                    print(f"Error inserting injury for player {player['name']} (ID: {player_db_id}): {e}")
                 conn.commit()
             
 if __name__ == "__main__":
