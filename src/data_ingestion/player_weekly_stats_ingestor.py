@@ -679,94 +679,165 @@ class PlayerWeeklyStatsIngestor(BaseIngestor):
             # Execute the bulk insert
             cur.executemany(query, values)
             
+    # Generic database utility methods for SQL generation
+    def _generate_placeholders(self, fields, use_named=True):
+        """
+        Generate SQL placeholders for the given fields.
+        
+        Args:
+            fields: List of field names
+            use_named: If True, generate named parameters (%(field)s), otherwise positional (%s)
+        
+        Returns:
+            String of placeholders separated by commas
+        """
+        if use_named:
+            return ", ".join([f"%({field})s" for field in fields])
+        else:
+            return ", ".join(["%s" for _ in fields])
+
+    def _generate_column_list(self, table_prefix, columns):
+        """Generate SQL column list with prefixes."""
+        return ", ".join([f"{table_prefix}_{col}" for col in columns])
+
+    def _generate_update_clause(self, table_prefix, columns):
+        """Generate SQL ON CONFLICT UPDATE clause."""
+        return ", ".join([f"{table_prefix}_{col} = EXCLUDED.{table_prefix}_{col}" for col in columns])
+
+    def insert_stats(self, conn, table_name, table_prefix, key_columns, data_columns, 
+                   field_map, data, is_bulk=False):
+        """
+        Generic function to insert stats into any table.
+        
+        Args:
+            conn: Database connection
+            table_name: Name of the table (e.g., 'stats.player_stats_weekly_kickoffs')
+            table_prefix: Column prefix for the table (e.g., 'psw_kickoff')
+            key_columns: List of column names that form the primary key
+            data_columns: List of column names to insert/update
+            field_map: Dictionary mapping API field names to database column names
+            data: Either a single dictionary or list of dictionaries with the data to insert
+            is_bulk: Force bulk insert even for a single row
+        """
+        if isinstance(data, list) and not data:
+            return  # No data to insert
+        
+        # Auto-detect bulk if not explicitly set and data is a list
+        is_bulk = is_bulk or (isinstance(data, list) and len(data) > 1)
+        
+        # Ensure data is a list for bulk operations
+        if not isinstance(data, list):
+            data = [data]
+        
+        # Get all column names (keys + data columns)
+        all_columns = key_columns + data_columns
+        
+        # Generate SQL parts
+        db_columns = self._generate_column_list(table_prefix, all_columns)
+        placeholders = self._generate_placeholders(list(field_map.keys()))
+        key_conflict = self._generate_column_list(table_prefix, key_columns)
+        update_clause = self._generate_update_clause(table_prefix, data_columns)
+        
+        # Construct the SQL query
+        query = f"""
+            INSERT INTO {table_name}
+            (
+                {db_columns}
+            )
+            VALUES
+            (
+                {placeholders}
+            )
+            ON CONFLICT ({key_conflict}) 
+            DO UPDATE SET
+                {update_clause}
+        """
+        
+        # Execute the query
+        with conn.cursor() as cur:
+            if len(data) == 1 and not is_bulk:
+                cur.execute(query, data[0])
+            else:
+                cur.executemany(query, data)
+                
     def insert_kickoff_stats(self, conn, player_stat_row):
-        with conn as cur:
-            query = """
-                INSERT INTO stats.player_stats_weekly_kickoffs
-                (
-                    psw_kickoff_player_id,
-                    psw_kickoff_team_id,
-                    psw_kickoff_game_id,
-                    psw_kickoff_season_year,
-                    psw_kickoff_week_number,
-                    psw_kickoff_attempts,
-                    psw_kickoff_yards,
-                    psw_kickoff_touchbacks,
-                    psw_kickoff_onside_attempts,
-                    psw_kickoff_onside_made,
-                    psw_kickoff_out_of_bounds
-                )
-                VALUES
-                (
-                    %(player_id)s,
-                    %(team_id)s,
-                    %(game_id)s,
-                    %(season_year)s,
-                    %(week_number)s,
-                    %(number)s,
-                    %(yards)s,
-                    %(touchbacks)s,
-                    %(onside_attempts)s,
-                    %(onside_successes)s,
-                    %(out_of_bounds)s
-                )
-                ON CONFLICT (psw_kickoff_player_id, psw_kickoff_game_id) 
-                DO UPDATE SET
-                    psw_kickoff_attempts = EXCLUDED.psw_kickoff_attempts,
-                    psw_kickoff_yards = EXCLUDED.psw_kickoff_yards,
-                    psw_kickoff_touchbacks = EXCLUDED.psw_kickoff_touchbacks,
-                    psw_kickoff_onside_attempts = EXCLUDED.psw_kickoff_onside_attempts,
-                    psw_kickoff_onside_made = EXCLUDED.psw_kickoff_onside_made,
-                    psw_kickoff_out_of_bounds = EXCLUDED.psw_kickoff_out_of_bounds
-                """
-            cur.execute(query, player_stat_row)
+        """
+        Insert kickoff stats for a single player.
+        
+        Args:
+            conn: Database connection
+            player_stat_row: Dictionary containing the player's kickoff stats
+        """
+        # Define the mapping between API fields and database columns
+        field_map = {
+            'player_id': 'player_id',
+            'team_id': 'team_id',
+            'game_id': 'game_id',
+            'season_year': 'season_year',
+            'week_number': 'week_number',
+            'number': 'attempts',         # Map 'number' API field to 'attempts' DB field
+            'yards': 'yards',
+            'touchbacks': 'touchbacks',
+            'onside_attempts': 'onside_attempts',
+            'onside_successes': 'onside_made',  # Map 'onside_successes' to 'onside_made'
+            'out_of_bounds': 'out_of_bounds'
+        }
+        
+        # Define key columns (for the ON CONFLICT clause) and data columns
+        key_columns = ['player_id', 'game_id']
+        data_columns = ['team_id', 'season_year', 'week_number', 'attempts', 'yards',
+                       'touchbacks', 'onside_attempts', 'onside_made', 'out_of_bounds']
+        
+        # Use the generic insert function
+        self.insert_stats(
+            conn=conn,
+            table_name='stats.player_stats_weekly_kickoffs',
+            table_prefix='psw_kickoff',
+            key_columns=key_columns,
+            data_columns=data_columns,
+            field_map=field_map,
+            data=player_stat_row,
+            is_bulk=False
+        )
             
     def insert_kickoff_stats_bulk(self, conn, player_stat_rows):
-        if not player_stat_rows:
-            return  # No data to insert
-            
-        with conn.cursor() as cur:
-            query = """
-                INSERT INTO stats.player_stats_weekly_kickoffs
-                (
-                    psw_kickoff_player_id,
-                    psw_kickoff_team_id,
-                    psw_kickoff_game_id,
-                    psw_kickoff_season_year,
-                    psw_kickoff_week_number,
-                    psw_kickoff_attempts,
-                    psw_kickoff_yards,
-                    psw_kickoff_touchbacks,
-                    psw_kickoff_onside_attempts,
-                    psw_kickoff_onside_made,
-                    psw_kickoff_out_of_bounds
-                )
-                VALUES
-                (
-                    %(player_id)s,
-                    %(team_id)s,
-                    %(game_id)s,
-                    %(season_year)s,
-                    %(week_number)s,
-                    %(number)s,
-                    %(yards)s,
-                    %(touchbacks)s,
-                    %(onside_attempts)s,
-                    %(onside_successes)s,
-                    %(out_of_bounds)s
-                )
-                ON CONFLICT (psw_kickoff_player_id, psw_kickoff_game_id) 
-                DO UPDATE SET
-                    psw_kickoff_attempts = EXCLUDED.psw_kickoff_attempts,
-                    psw_kickoff_yards = EXCLUDED.psw_kickoff_yards,
-                    psw_kickoff_avg_yards = EXCLUDED.psw_kickoff_avg_yards,
-                    psw_kickoff_touchbacks = EXCLUDED.psw_kickoff_touchbacks,
-                    psw_kickoff_onside_attempts = EXCLUDED.psw_kickoff_onside_attempts,
-                    psw_kickoff_onside_made = EXCLUDED.psw_kickoff_onside_made,
-                    psw_kickoff_out_of_bounds = EXCLUDED.psw_kickoff_out_of_bounds
-            """
-            # Use executemany for bulk insert
-            cur.executemany(query, player_stat_rows)
+        """
+        Insert kickoff stats for multiple players.
+        
+        Args:
+            conn: Database connection
+            player_stat_rows: List of dictionaries containing player kickoff stats
+        """
+        # Reuse the same field mapping and column definitions
+        field_map = {
+            'player_id': 'player_id',
+            'team_id': 'team_id',
+            'game_id': 'game_id',
+            'season_year': 'season_year',
+            'week_number': 'week_number',
+            'number': 'attempts',
+            'yards': 'yards',
+            'touchbacks': 'touchbacks',
+            'onside_attempts': 'onside_attempts',
+            'onside_successes': 'onside_made',
+            'out_of_bounds': 'out_of_bounds'
+        }
+        
+        key_columns = ['player_id', 'game_id']
+        data_columns = ['team_id', 'season_year', 'week_number', 'attempts', 'yards',
+                       'touchbacks', 'onside_attempts', 'onside_made', 'out_of_bounds']
+        
+        # Use the generic insert function with is_bulk=True
+        self.insert_stats(
+            conn=conn,
+            table_name='stats.player_stats_weekly_kickoffs',
+            table_prefix='psw_kickoff',
+            key_columns=key_columns,
+            data_columns=data_columns,
+            field_map=field_map,
+            data=player_stat_rows,
+            is_bulk=True
+        )
             
     def process_kickoff_stats(self, conn, stats_data, player_map, game_id, season_year, week_number):
         team_map = self.get_team_map(conn)
