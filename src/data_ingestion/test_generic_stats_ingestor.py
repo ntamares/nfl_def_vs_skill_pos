@@ -8,7 +8,8 @@ from .base_ingestor import BaseIngestor
 
 class PlayerWeeklyStatsIngestor(BaseIngestor):
     def __init__(self, season: int, week: int):
-        super().__init__()  # Initialize the BaseIngestor
+        super().__init__() 
+        # TODO just set season and week (for testing) in run?
         self.season = season
         self.week = week
         self.logger = logging.getLogger(__name__)
