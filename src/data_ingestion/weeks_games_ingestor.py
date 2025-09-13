@@ -1,7 +1,7 @@
 import os
-from .base_ingestor import BaseIngestor
 from datetime import datetime
 from utils.db import safe_connection
+from .base_ingestor import BaseIngestor
 
 class WeeksGamesIngestor(BaseIngestor):
     def __init__(self):

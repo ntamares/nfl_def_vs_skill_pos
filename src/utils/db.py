@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from psycopg import connect
 from config.settings import settings
 
-
 def get_connection():
     return connect(
         host=settings.DB_HOST,
@@ -26,4 +25,5 @@ def safe_connection():
     try:
         yield conn
     finally:
+        conn.close()
         conn.close()

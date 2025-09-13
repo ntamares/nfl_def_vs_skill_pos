@@ -1,9 +1,9 @@
 import os
-from .base_ingestor import BaseIngestor
-from datetime import datetime
-from utils.db import safe_connection
 import time
+from datetime import datetime
 import requests
+from utils.db import safe_connection
+from .base_ingestor import BaseIngestor
 
 class InjuriesIngestor(BaseIngestor):
     def __init__(self):
@@ -115,9 +115,7 @@ class InjuriesIngestor(BaseIngestor):
                                 except Exception as e:
                                      print(f"Error inserting player {player['id']}: {e}")
                         
-                        # Process injuries for this player if we have a valid player ID
                         if player_db_id is not None:
-                            # Create injury records using list comprehension
                             injuries = [
                                 {
                                     "inj_player_id": player_db_id,

@@ -9,15 +9,14 @@ from .base_ingestor import BaseIngestor
 class PlayerWeeklyStatsIngestor(BaseIngestor):
     def __init__(self):
         super().__init__()
-        self.endpoint_template = "games/{game_id}/statistics.json"  # Changed from boxscore.json to statistics.json
-        self.test_mode = True  # Set to True for test mode, False for full run
-        self.test_week = 5  # Week to process in test mode
-        self.test_year = 2024  # Season year to process in test mode
+        self.endpoint_template = "games/{game_id}/statistics.json"
+        self.test_mode = True 
+        self.test_week = 5  
+        self.test_year = 2024 
         
         
     def get_games(self, conn) -> list:
         with conn.cursor() as cur:
-            # If in test mode, only get games for the specified week and year
             if self.test_mode:
                 cur.execute("""
                     select game_sr_uuid, game_id, game_week, game_season_year
@@ -44,7 +43,7 @@ class PlayerWeeklyStatsIngestor(BaseIngestor):
             ]
         
         
-    def get_player_id(self, conn, player_uuid) -> int:
+    def get_player_db_id(self, conn, player_uuid) -> int:
         with conn as cur:
             cur.execute(
                 """

@@ -1,5 +1,4 @@
 import os
-import json
 from utils.db import safe_connection
 from utils.time import utc_now
 from .base_ingestor import BaseIngestor

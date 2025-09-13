@@ -1,7 +1,6 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Pick the right env file based on ENVIRONMENT variable
 ENVIRONMENT = os.getenv("ENVIRONMENT", "DEV").upper()
 env_file = os.path.join(os.path.dirname(__file__), ".env.dev" if ENVIRONMENT == "DEV" else ".env.prod")
 

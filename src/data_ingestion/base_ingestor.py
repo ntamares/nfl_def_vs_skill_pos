@@ -1,13 +1,11 @@
-import sys
-from config.settings import Settings
-import os
 import json
-import time
-from utils.time import utc_now
+import os
+import sys
+from pathlib import Path
 import requests
 from dotenv import load_dotenv
-from pathlib import Path
-
+from config.settings import Settings
+from utils.time import utc_now
 
 class BaseIngestor:
     def __init__(self):
@@ -31,17 +29,8 @@ class BaseIngestor:
                 sys.exit(1)     
     
     def fetch_data(self, url: str) -> dict:
-        """
-        Fetch data from the API
-        
-        Args:
-            url: The URL to fetch data from
-            
-        Returns:
-            The JSON response data
-        """
         response = requests.get(url, headers=self.headers)
-        response.raise_for_status()  # Will raise HTTPError for 4XX/5XX responses
+        response.raise_for_status()
         return response.json()
         
     def save_raw_json(self, data, folder_name):
@@ -91,7 +80,6 @@ class BaseIngestor:
                 team_row = cur.fetchone()
                 team_id = team_row[0] if team_row else None
         
-        # Execute the insert/update
         with conn.cursor() as cur:
             cur.execute(
                 query,
@@ -125,4 +113,5 @@ class BaseIngestor:
             cur.execute("SELECT team_id, team_sr_uuid FROM refdata.team")
             for row in cur.fetchall():
                 team_map[row[1]] = row[0]
+        return team_map
         return team_map
