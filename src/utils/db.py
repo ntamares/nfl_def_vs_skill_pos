@@ -16,9 +16,9 @@ def get_connection():
 @contextmanager
 def safe_connection():
     if settings.ENVIRONMENT.upper() == "PROD":
-        confirm = input("⚠️ Running against PROD. Type 'yes' to continue: ")
+        confirm = input("Running against PROD. Type 'yes' to continue: ")
         if confirm.lower() != "yes":
-            print("❌ Aborted.")
+            print("Aborted.")
             sys.exit(1)
 
     conn = get_connection()

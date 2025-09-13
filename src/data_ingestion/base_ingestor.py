@@ -46,7 +46,7 @@ class BaseIngestor:
 
     def insert_player(self, conn, player_data):
         query = """
-            INSERT INTO refdata.player 
+            insert into refdata.player 
             (
                 player_name, 
                 player_first_name, 
@@ -56,15 +56,15 @@ class BaseIngestor:
                 player_sr_uuid, 
                 player_number
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (player_sr_uuid) DO UPDATE SET
-                player_name = EXCLUDED.player_name,
-                player_first_name = EXCLUDED.player_first_name,
-                player_last_name = EXCLUDED.player_last_name,
-                player_team_id = COALESCE(EXCLUDED.player_team_id, refdata.player.player_team_id),
-                player_position = COALESCE(EXCLUDED.player_position, refdata.player.player_position),
-                player_number = COALESCE(EXCLUDED.player_number, refdata.player.player_number)
-            RETURNING player_id;
+            values (%s, %s, %s, %s, %s, %s, %s)
+            on conflict (player_sr_uuid) do update set
+                player_name = excluded.player_name,
+                player_first_name = excluded.player_first_name,
+                player_last_name = excluded.player_last_name,
+                player_team_id = coalesce(excluded.player_team_id, refdata.player.player_team_id),
+                player_position = coalesce(excluded.player_position, refdata.player.player_position),
+                player_number = coalesce(excluded.player_number, refdata.player.player_number)
+            returning player_id;
         """
 
         name_parts = player_data["name"].split(' ', 1)
@@ -75,7 +75,7 @@ class BaseIngestor:
         if player_data.get("team_id"):
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT team_id FROM refdata.team WHERE team_sr_uuid = %s
+                    select team_id from refdata.team where team_sr_uuid = %s
                 """, (player_data["team_id"],))
                 team_row = cur.fetchone()
                 team_id = team_row[0] if team_row else None
@@ -96,22 +96,23 @@ class BaseIngestor:
             result = cur.fetchone()
             return result[0] if result else None
             
+            
     def get_player_id(self, conn, player_uuid):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT player_id
-                FROM refdata.player
-                WHERE player_sr_uuid = %s
+                select player_id
+                from refdata.player
+                where player_sr_uuid = %s
                 """, (player_uuid,))
             player_row = cur.fetchone()
             return player_row[0] if player_row else None
     
+    
     def get_team_map(self, conn):
         team_map = {}
         with conn.cursor() as cur:
-            cur.execute("SELECT team_id, team_sr_uuid FROM refdata.team")
+            cur.execute("select team_id, team_sr_uuid from refdata.team")
             for row in cur.fetchall():
                 team_map[row[1]] = row[0]
-        return team_map
         return team_map

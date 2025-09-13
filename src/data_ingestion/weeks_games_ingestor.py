@@ -83,7 +83,6 @@ class WeeksGamesIngestor(BaseIngestor):
             for week in data["weeks"]:
                 week_number = week["sequence"]
                 
-                # Get all game dates to determine week start/end
                 game_dates = [
                     datetime.fromisoformat(g["scheduled"].replace("Z", "+00:00"))
                     for g in week["games"]
@@ -94,7 +93,6 @@ class WeeksGamesIngestor(BaseIngestor):
                     print(f"Warning: No valid game dates found for week {week_number}")
                     continue
         
-                # Create week data using dictionary
                 week_row = {
                     "week_sr_uuid": week["id"],
                     "week_season_year": year,
@@ -110,7 +108,6 @@ class WeeksGamesIngestor(BaseIngestor):
                     print(f"Error inserting week {week_row['week_sr_uuid']}: {e}")
                     continue
                         
-                # Get the database ID for this week
                 with conn.cursor() as cur:
                     cur.execute("""
                                 select week_id from refdata.week 
@@ -121,14 +118,12 @@ class WeeksGamesIngestor(BaseIngestor):
                         continue
                     week_db_id = result[0]
                 
-                # Create a team ID lookup
                 team_map = {}
                 with conn.cursor() as cur:
-                    cur.execute("SELECT team_sr_uuid, team_id FROM refdata.team")
+                    cur.execute("select team_sr_uuid, team_id from refdata.team")
                     for row in cur.fetchall():
                         team_map[row[0]] = row[1]
                 
-                # Process all games for this week using list comprehension
                 games_to_insert = []
                 for game in week["games"]:
                     home_team_id = team_map.get(game["home"].get("id"))
@@ -138,14 +133,12 @@ class WeeksGamesIngestor(BaseIngestor):
                         print(f"Warning: Missing team ID for game {game.get('id')}")
                         continue
                     
-                    # Safely convert scheduled date string to datetime
                     try:
                         game_date = datetime.fromisoformat(game["scheduled"].replace("Z", "+00:00"))
                     except (KeyError, ValueError) as e:
                         print(f"Error parsing game date for game {game.get('id')}: {e}")
                         continue
                     
-                    # Create game row dictionary
                     game_row = {
                         "game_week": week_number,
                         "game_season_year": year,
@@ -160,7 +153,6 @@ class WeeksGamesIngestor(BaseIngestor):
                     
                     games_to_insert.append(game_row)
                 
-                # Insert all games for this week
                 for game_row in games_to_insert:
                     try:
                         self.insert_games(conn, game_row)

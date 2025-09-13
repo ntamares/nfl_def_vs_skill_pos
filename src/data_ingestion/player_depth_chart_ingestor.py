@@ -58,7 +58,6 @@ class PlayerDepthChartIngestor(BaseIngestor):
                 if os.getenv("ENVIRONMENT", "DEV").upper() == "DEV":
                     self.save_raw_json(data)
                     
-                # Extract player data with normalized rank
                 players = [
                     {
                         "team_id": team["id"],
@@ -82,16 +81,13 @@ class PlayerDepthChartIngestor(BaseIngestor):
                 
                 print(f"Found {len(players)} players to process")
                 
-                # First, insert all players
                 for player_row in players:
                     try:
                         self.insert_player(conn, player_row)
                     except Exception as e:
                         print(f"Error inserting player {player_row['name']}: {e}")
                 
-                # Then, insert all depth chart entries
                 for player_row in players:
-                    # Log warnings for players with default rank
                     if player_row["rank"] == -1:
                         print(f"Warning: No rank for player {player_row['name']} ({player_row['player_sr_uuid']}) - using default -1")
                     

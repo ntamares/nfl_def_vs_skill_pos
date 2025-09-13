@@ -69,14 +69,12 @@ class InjuriesIngestor(BaseIngestor):
                                     where week_sr_uuid = %s""", (data["week"].get("id"),))
                         inj_week_db_id = cur.fetchone()[0]
                         
-                        # Create a map of status codes for practice participation
                         status_map = {
                             "Did Not Participate In Practice": "DNP",
                             "Limited Participation In Practice": "Limited",
                             "Full Participation In Practice": "Full"
                         }
                         
-                        # Get team ID from database
                         team_db_id = None
                         cur.execute("""
                             select team_id from refdata.team 
@@ -88,9 +86,7 @@ class InjuriesIngestor(BaseIngestor):
                             print(f"Team not found in DB: SR UUID={team['id']}")
                             continue
 
-                    # Process all players for this team
                     for player in team["players"]:
-                        # Get or create player in database
                         with conn.cursor() as cur:
                             cur.execute("""
                                 select player_id from refdata.player 
@@ -100,7 +96,6 @@ class InjuriesIngestor(BaseIngestor):
                             if result is not None:
                                 player_db_id = result[0]
                             else:
-                                # Player not found, create it
                                 player_row = {
                                     "name": player["name"],
                                     "position": player["position"],
@@ -132,7 +127,6 @@ class InjuriesIngestor(BaseIngestor):
                                 if "practice" in injury and "status" in injury["practice"] and injury["practice"]["status"] in status_map
                             ]
                             
-                            # Insert all injury records for this player
                             for inj in injuries:
                                 try:
                                     self.insert_injury(conn, inj)
