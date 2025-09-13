@@ -24,6 +24,7 @@ Thumbs.db
 
 # Logs
 *.log
+.logs
 
 # Other
 .refdata/
