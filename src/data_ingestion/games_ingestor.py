@@ -1,12 +1,14 @@
 import os
+import logging
 from datetime import datetime
 from utils.db import safe_connection
 from .base_ingestor import BaseIngestor
 
-class WeeksGamesIngestor(BaseIngestor):
+class GamesIngestor(BaseIngestor):
     def __init__(self):
         super().__init__()
         self.endpoint_template = "games/{year}/REG/schedule.json"
+        self.logger = logging.getLogger(__name__)
         
     def insert_week(self, conn, week_row):
         query = """
@@ -90,7 +92,7 @@ class WeeksGamesIngestor(BaseIngestor):
                 ]
                 
                 if not game_dates:
-                    print(f"Warning: No valid game dates found for week {week_number}")
+                    self.logger.warning(f"Warning: No valid game dates found for week {week_number}")
                     continue
         
                 week_row = {
@@ -104,8 +106,9 @@ class WeeksGamesIngestor(BaseIngestor):
                 
                 try:
                     self.insert_week(conn, week_row)
+                    self.logger.info(f"Successfully inserted week {week_row['week_sr_uuid']}")
                 except Exception as e:
-                    print(f"Error inserting week {week_row['week_sr_uuid']}: {e}")
+                    self.logger.error(f"Error inserting week {week_row['week_sr_uuid']}: {e}")
                     continue
                         
                 with conn.cursor() as cur:
@@ -114,7 +117,7 @@ class WeeksGamesIngestor(BaseIngestor):
                                 where week_sr_uuid = %s""", (week["id"],))
                     result = cur.fetchone()
                     if not result:
-                        print(f"Warning: Could not find week ID for week {week_number}")
+                        self.logger.warning(f"Warning: Could not find week ID for week {week_number}")
                         continue
                     week_db_id = result[0]
                 
@@ -130,13 +133,13 @@ class WeeksGamesIngestor(BaseIngestor):
                     away_team_id = team_map.get(game["away"].get("id"))
                     
                     if not home_team_id or not away_team_id:
-                        print(f"Warning: Missing team ID for game {game.get('id')}")
+                        self.logger.warning(f"Warning: Missing team ID for game {game.get('id')}")
                         continue
                     
                     try:
                         game_date = datetime.fromisoformat(game["scheduled"].replace("Z", "+00:00"))
                     except (KeyError, ValueError) as e:
-                        print(f"Error parsing game date for game {game.get('id')}: {e}")
+                        self.logger.error(f"Error parsing game date for game {game.get('id')}: {e}")
                         continue
                     
                     game_row = {
@@ -156,11 +159,29 @@ class WeeksGamesIngestor(BaseIngestor):
                 for game_row in games_to_insert:
                     try:
                         self.insert_games(conn, game_row)
+                        self.logger.info(f"Successfully inserted game {game_row['game_sr_uuid']}")
                     except Exception as e:
-                        print(f"Error inserting game {game_row['game_sr_uuid']}: {e}")
+                        self.logger.error(f"Error inserting game {game_row['game_sr_uuid']}: {e}")
                 
             conn.commit()
             
 if __name__ == "__main__":
-    ingestor = WeeksGamesIngestor()
+    logs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.logs')
+    os.makedirs(logs_dir, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_filename = os.path.join(logs_dir, f'games_ingestor_{timestamp}.log')
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_filename),
+            logging.StreamHandler() 
+        ]
+    )
+    
+    logging.info(f"Logging to file: {log_filename}")
+    ingestor = GamesIngestor()
     ingestor.run()
+    logging.info("Games script execution completed")
+    print(f"\nScript execution completed. Full logs saved to: {log_filename}")

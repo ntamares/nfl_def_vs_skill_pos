@@ -15,7 +15,7 @@ class PlayerStatsIngestor(BaseIngestor):
         self.endpoint_template = "games/{game_id}/statistics.json"
         self.week_mode = True 
         self.season_mode = False 
-        self.week = 8
+        self.week = 1
         self.year = 2024 
         self.logger = logging.getLogger(__name__)
         
@@ -903,5 +903,5 @@ if __name__ == "__main__":
     
     ingestor.run()
     
-    logging.info("Script execution completed")
+    logging.info("Player stats script execution completed")
     print(f"\nScript execution completed. Full logs saved to: {log_filename}")

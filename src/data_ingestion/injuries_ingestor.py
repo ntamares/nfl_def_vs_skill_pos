@@ -1,6 +1,7 @@
 import os
 import time
-from datetime import datetime
+import datetime
+import logging
 import requests
 from utils.db import safe_connection
 from .base_ingestor import BaseIngestor
@@ -9,6 +10,7 @@ class InjuriesIngestor(BaseIngestor):
     def __init__(self):
         super().__init__()
         self.endpoint_template = "seasons/{year}/REG/{week:02d}/injuries.json"
+        self.logger = logging.getLogger(__name__)
         
     def insert_injury(self, conn, inj):
         query = """
@@ -83,7 +85,7 @@ class InjuriesIngestor(BaseIngestor):
                         if result is not None:
                             team_db_id = result[0]
                         else:
-                            print(f"Team not found in DB: SR UUID={team['id']}")
+                            self.logger.warning(f"Warning: team not found in DB: SR UUID={team['id']}")
                             continue
 
                     for player in team["players"]:
@@ -106,9 +108,9 @@ class InjuriesIngestor(BaseIngestor):
                                 
                                 try:
                                     player_db_id = self.insert_player(conn, player_row)
-                                    print(f"Inserted player {player['name']} with ID {player_db_id}")
+                                    self.logger.info(f"Successfully inserted player {player['name']} with ID {player_db_id}")
                                 except Exception as e:
-                                     print(f"Error inserting player {player['id']}: {e}")
+                                     self.logger.error(f"Error inserting player {player['id']}: {e}")
                         
                         if player_db_id is not None:
                             injuries = [
@@ -130,10 +132,29 @@ class InjuriesIngestor(BaseIngestor):
                             for inj in injuries:
                                 try:
                                     self.insert_injury(conn, inj)
+                                    self.logger.info(f"Successfully inserted injury for player {player['name']} (ID: {player_db_id}): {e}")
                                 except Exception as e:
-                                    print(f"Error inserting injury for player {player['name']} (ID: {player_db_id}): {e}")
+                                    self.logger.error(f"Error inserting injury for player {player['name']} (ID: {player_db_id}): {e}")
                 conn.commit()
             
 if __name__ == "__main__":
+    logs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.logs')
+    os.makedirs(logs_dir, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_filename = os.path.join(logs_dir, f'injuries_ingestor_{timestamp}.log')
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_filename),
+            logging.StreamHandler() 
+        ]
+    )
+    
+    logging.info(f"Logging to file: {log_filename}")
     ingestor = InjuriesIngestor()
     ingestor.run()
+    
+    logging.info("Depth chart script execution completed")
+    print(f"\nScript execution completed. Full logs saved to: {log_filename}")
