@@ -1,39 +1,53 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# ===============================
+# Backend (Python)
+# ===============================
+backend/__pycache__/
+backend/*.py[cod]
+backend/.venv/
+backend/venv/
+backend/ENV/
+backend/env/
+backend/.data/
+backend/src/.data/
+backend/.refdata/
+backend/debug_archive/
+backend/.meta_coordination/
+backend/src/config/.env.dev
+backend/src/config/.env.prod
+backend/.env
+backend/.logs/
+*.log
 
-# Virtual environments
-.venv/
-venv/
-ENV/
-env/
 
-# Environment variables
-.env
-.env.dev
-.env.prod
 
-# VSCode settings
+# ===============================
+# Frontend (Node / React / Vite)
+# ===============================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env
+
+# ===============================
+# IDE / Editor
+# ===============================
 .vscode/
 
+# ===============================
 # OS-specific files
+# ===============================
 .DS_Store
 Thumbs.db
 
-# Logs
+# ===============================
+# Other / backups
+# ===============================
 *.log
-.logs
 
-# Other
-.refdata/
-open_venv.bat
-src/config/*.env
-.data/
-src/.data/
-.meta_coordination/
-debug_archive/
+# ===============================
+# Other / backups
+# ===============================
 *.bak
 *.backup
 *.full_backup
+open_venv.bat
