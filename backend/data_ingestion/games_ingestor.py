@@ -1,7 +1,7 @@
 import os
 import logging
 from datetime import datetime
-from utils.db import safe_connection
+from src.utils.db import safe_connection
 from .base_ingestor import BaseIngestor
 
 class GamesIngestor(BaseIngestor):
@@ -168,7 +168,7 @@ class GamesIngestor(BaseIngestor):
 if __name__ == "__main__":
     logs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.logs')
     os.makedirs(logs_dir, exist_ok=True)
-    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     log_filename = os.path.join(logs_dir, f'games_ingestor_{timestamp}.log')
     
     logging.basicConfig(

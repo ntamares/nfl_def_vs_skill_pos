@@ -3,7 +3,7 @@ import time
 import datetime
 import logging
 import requests
-from utils.db import safe_connection
+from src.utils.db import safe_connection
 from .base_ingestor import BaseIngestor
 
 class InjuriesIngestor(BaseIngestor):
@@ -69,7 +69,13 @@ class InjuriesIngestor(BaseIngestor):
                         cur.execute("""
                                     select week_id from refdata.week 
                                     where week_sr_uuid = %s""", (data["week"].get("id"),))
-                        inj_week_db_id = cur.fetchone()[0]
+                        week_result = cur.fetchone()
+
+                        if week_result is not None:
+                            inj_week_db_id = week_result[0]
+                        else:
+                            self.logger.error(f"Error: week not found in DB: SR UUID={data['week'].get('id')}")
+                            continue
                         
                         status_map = {
                             "Did Not Participate In Practice": "DNP",
@@ -85,8 +91,10 @@ class InjuriesIngestor(BaseIngestor):
                         if result is not None:
                             team_db_id = result[0]
                         else:
-                            self.logger.warning(f"Warning: team not found in DB: SR UUID={team['id']}")
+                            self.logger.error(f"Error: team not found in DB: SR UUID={team['id']}")
                             continue
+                    
+                    player_db_id = None
 
                     for player in team["players"]:
                         with conn.cursor() as cur:
@@ -120,7 +128,7 @@ class InjuriesIngestor(BaseIngestor):
                                     "inj_season_year": year,
                                     "inj_week": i,
                                     "inj_status": injury.get("status", "Healthy"),
-                                    "inj_status_date": datetime.fromisoformat(injury.get("status_date", "1970-01-01T00:00:00Z").replace("Z", "+00:00")),
+                                    "inj_status_date": datetime.datetime.fromisoformat(injury.get("status_date", "1970-01-01T00:00:00Z").replace("Z", "+00:00")),
                                     "inj_primary_injury": injury.get("primary"),
                                     "inj_week_id": inj_week_db_id,
                                     "inj_practice_participation": status_map.get(injury["practice"]["status"], "Unknown")
@@ -132,7 +140,7 @@ class InjuriesIngestor(BaseIngestor):
                             for inj in injuries:
                                 try:
                                     self.insert_injury(conn, inj)
-                                    self.logger.info(f"Successfully inserted injury for player {player['name']} (ID: {player_db_id}): {e}")
+                                    self.logger.info(f"Successfully inserted injury for player {player['name']} (ID: {player_db_id})")
                                 except Exception as e:
                                     self.logger.error(f"Error inserting injury for player {player['name']} (ID: {player_db_id}): {e}")
                 conn.commit()

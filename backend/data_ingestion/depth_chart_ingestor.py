@@ -1,7 +1,7 @@
 import os
 import datetime
 import logging
-from utils.db import safe_connection
+from src.utils.db import safe_connection
 from .base_ingestor import BaseIngestor
 
 class DepthChartIngestor(BaseIngestor):
@@ -10,9 +10,6 @@ class DepthChartIngestor(BaseIngestor):
         self.endpoint_template = "seasons/{year}/REG/{week:02d}/depth_charts.json"
         self.logger = logging.getLogger(__name__)
 
-    def save_raw_json(self, data):
-        super().save_raw_json(data, "depth_charts")
-            
     def insert_depth_chart(self, conn, player_row):
         query = """
             insert into refdata.depth_chart_weekly
@@ -59,7 +56,7 @@ class DepthChartIngestor(BaseIngestor):
                 data = self.fetch_data(url)
                 
                 if os.getenv("ENVIRONMENT", "DEV").upper() == "DEV":
-                    self.save_raw_json(data)
+                    self.save_raw_json(data, "depth_charts")
                     
                 players = [
                     {

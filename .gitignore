@@ -14,8 +14,11 @@ backend/debug_archive/
 backend/.meta_coordination/
 backend/src/config/.env.dev
 backend/src/config/.env.prod
+backend/.env.dev
+backend/.env.prod
 backend/.env
 backend/.logs/
+backend/node_modules/
 *.log
 
 
@@ -26,12 +29,14 @@ backend/.logs/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
-frontend/.env
+frontend/.env.development
+frontend/.env.production
 
 # ===============================
 # IDE / Editor
 # ===============================
 .vscode/
+frontend/.prettierrc
 
 # ===============================
 # OS-specific files
@@ -43,6 +48,7 @@ Thumbs.db
 # Other / backups
 # ===============================
 *.log
+projecttree.md
 
 # ===============================
 # Other / backups

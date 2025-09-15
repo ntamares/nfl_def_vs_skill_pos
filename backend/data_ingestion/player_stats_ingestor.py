@@ -3,10 +3,10 @@ import datetime
 import logging
 import os
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import requests
-from utils.db import safe_connection
-from utils.time import get_current_nfl_season_year
+from src.utils.db import safe_connection
+from src.utils.time import get_current_nfl_season_year
 from .base_ingestor import BaseIngestor
 
 class PlayerStatsIngestor(BaseIngestor):
@@ -540,7 +540,7 @@ class PlayerStatsIngestor(BaseIngestor):
                     conn.commit()
                     self.logger.info(f"Successfully updated rushing stats with fumbles data for player {player.get('name')} (ID: {player_id})")
 
-    def process_stats(self, conn, data: List[Dict[str, Any]], stat_type: str, team_map: Dict[str, int] = None) -> List[Dict[str, Any]]:
+    def process_stats(self, conn, data: List[Dict[str, Any]], stat_type: str, team_map: Optional[Dict[str, int]] = None) -> List[Dict[str, Any]]:
         config = self.STAT_CONFIGS[stat_type]
         
         processed_data = []
@@ -783,12 +783,12 @@ class PlayerStatsIngestor(BaseIngestor):
             for game in games:
                 game_uuid = game['uuid']
                 game_db_id = game['id']
-                
                 week_number = game['week']
                 season_year = game['year']
+                data = None
                 
                 self.logger.info(f"Processing game {game_uuid} (Week {week_number}, Year {season_year})")
-                
+
                 while True:
                     try:
                         url = f"{self.base_url}{self.endpoint_template.format(game_id=game_uuid)}"
@@ -801,8 +801,12 @@ class PlayerStatsIngestor(BaseIngestor):
                         else:
                             self.logger.error(f"HTTP error processing game {game_uuid}: {e}")
                             break 
-                        
+                
                 try:
+                    if data is None:
+                        self.logger.error(f"No data retrieved for game {game_uuid}, skipping")
+                        continue
+                    
                     if os.getenv("ENVIRONMENT", "DEV").upper() == "DEV":
                         self.save_raw_json(data, "game_stats")
                     

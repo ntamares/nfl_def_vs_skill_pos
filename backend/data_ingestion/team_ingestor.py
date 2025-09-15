@@ -1,6 +1,6 @@
 import os
-from utils.db import safe_connection
-from utils.time import utc_now
+from src.utils.db import safe_connection
+from src.utils.time import utc_now
 from .base_ingestor import BaseIngestor
 
 class TeamIngestor(BaseIngestor):
@@ -8,8 +8,6 @@ class TeamIngestor(BaseIngestor):
         super().__init__()
         self.endpoint = "league/teams.json"
 
-    def save_raw_json(self, data):
-        super().save_raw_json(data, "teams")
 
     def insert_team(self, data):
         query = """
@@ -50,7 +48,7 @@ class TeamIngestor(BaseIngestor):
         data = self.fetch_data(url)
         
         if os.getenv("ENVIRONMENT", "DEV").upper() == "DEV":
-            self.save_raw_json(data)
+            self.save_raw_json(data, "teams")
         
         self.insert_team(data)
 
