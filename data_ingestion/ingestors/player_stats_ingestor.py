@@ -5,8 +5,8 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 import requests
-from src.utils.db import safe_connection
-from src.utils.time import get_current_nfl_season_year
+from ..utils.db import safe_connection
+from ..utils.time import get_current_nfl_season_year
 from .base_ingestor import BaseIngestor
 
 class PlayerStatsIngestor(BaseIngestor):

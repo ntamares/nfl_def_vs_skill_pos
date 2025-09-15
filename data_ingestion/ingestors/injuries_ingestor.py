@@ -3,7 +3,7 @@ import time
 import datetime
 import logging
 import requests
-from src.utils.db import safe_connection
+from ..utils.db import safe_connection
 from .base_ingestor import BaseIngestor
 
 class InjuriesIngestor(BaseIngestor):

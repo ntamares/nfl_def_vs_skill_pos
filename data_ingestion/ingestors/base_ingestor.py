@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 import requests
 from dotenv import load_dotenv
-from src.config.settings import Settings
-from src.utils.time import utc_now
+from backend.data_ingestion.config.settings import Settings
+from ..utils.time import utc_now
 
 class BaseIngestor:
     def __init__(self):

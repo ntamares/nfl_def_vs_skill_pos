@@ -1,6 +1,6 @@
 import os
-from src.utils.db import safe_connection
-from src.utils.time import utc_now
+from ..utils.db import safe_connection
+from ..utils.time import utc_now
 from .base_ingestor import BaseIngestor
 
 class TeamIngestor(BaseIngestor):

@@ -1,7 +1,7 @@
 import os
 import datetime
 import logging
-from src.utils.db import safe_connection
+from ..utils.db import safe_connection
 from .base_ingestor import BaseIngestor
 
 class DepthChartIngestor(BaseIngestor):

@@ -1,42 +1,31 @@
 # ===============================
-# Backend (Python)
+# data_ingestion (Python)
 # ===============================
-backend/__pycache__/
-backend/*.py[cod]
-backend/.venv/
-backend/venv/
-backend/ENV/
-backend/env/
-backend/.data/
-backend/src/.data/
-backend/.refdata/
-backend/debug_archive/
-backend/.meta_coordination/
-backend/src/config/.env.dev
-backend/src/config/.env.prod
-backend/.env.dev
-backend/.env.prod
-backend/.env
-backend/.logs/
-backend/node_modules/
+data_ingestion/__pycache__/
+data_ingestion/*.py[cod]
+data_ingestion/.venv/
+data_ingestion/venv/
+data_ingestion/ENV/
+data_ingestion/env/
+data_ingestion/.data/
+data_ingestion/src/.data/
+data_ingestion/.refdata/
+data_ingestion/debug_archive/
+data_ingestion/.meta_coordination/
+data_ingestion/src/config/.env.dev
+data_ingestion/src/config/.env.prod
+data_ingestion/.env.dev
+data_ingestion/.env.prod
+data_ingestion/.env
+data_ingestion/.logs/
+data_ingestion/node_modules/
 *.log
 
-
-
-# ===============================
-# Frontend (Node / React / Vite)
-# ===============================
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-frontend/.env.development
-frontend/.env.production
 
 # ===============================
 # IDE / Editor
 # ===============================
 .vscode/
-frontend/.prettierrc
 
 # ===============================
 # OS-specific files
@@ -56,4 +45,3 @@ projecttree.md
 *.bak
 *.backup
 *.full_backup
-open_venv.bat
