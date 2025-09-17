@@ -1,4 +1,11 @@
 # ===============================
+# Environment/Sensitive
+# ===============================
+.env.dev
+.env.prod
+.env
+
+# ===============================
 # data_ingestion (Python)
 # ===============================
 data_ingestion/__pycache__/
@@ -12,15 +19,11 @@ data_ingestion/src/.data/
 data_ingestion/.refdata/
 data_ingestion/debug_archive/
 data_ingestion/.meta_coordination/
-data_ingestion/src/config/.env.dev
-data_ingestion/src/config/.env.prod
-data_ingestion/.env.dev
-data_ingestion/.env.prod
-data_ingestion/.env
 data_ingestion/.logs/
-data_ingestion/node_modules/
 *.log
-
+*.pyc
+*.pyo
+*.pyd
 
 # ===============================
 # IDE / Editor
@@ -38,10 +41,36 @@ Thumbs.db
 # ===============================
 *.log
 projecttree.md
-
-# ===============================
-# Other / backups
-# ===============================
 *.bak
 *.backup
 *.full_backup
+
+
+# ===============================
+# Sveltekit
+# ===============================
+app/node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+app/.svelte-kit
+app/.build
+
+
+# Env
+.env
+.env.*
+
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+
+# -------------------------
+# Old frontend backup
+# -------------------------
+app_frontend_backup/
