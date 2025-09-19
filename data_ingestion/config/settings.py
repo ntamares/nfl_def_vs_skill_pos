@@ -2,7 +2,7 @@ import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "DEV").upper()
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 env_file = os.path.join(root_dir, ".env.prod" if ENVIRONMENT == "PROD" else ".env.dev")
 
 class Settings(BaseSettings):

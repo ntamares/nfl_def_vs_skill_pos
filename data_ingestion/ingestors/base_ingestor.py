@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 import requests
 from dotenv import load_dotenv
-from backend.data_ingestion.config.settings import Settings
+from data_ingestion.config.settings import Settings
 from ..utils.time import utc_now
 
 class BaseIngestor:

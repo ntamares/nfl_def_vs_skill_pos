@@ -738,7 +738,7 @@ class PlayerStatsIngestor(BaseIngestor):
                             "name": original_data.get('name', 'Unknown Player'),
                             "player_sr_uuid": player_uuid,
                             "team_id": original_data.get('team_id'),
-                            "position": original_data.get('position', 'UNK'),  # default position to 'UNK' if missing
+                            "position": original_data.get('position', 'UNK'), 
                             "jersey": original_data.get('jersey', None)
                         }
                         

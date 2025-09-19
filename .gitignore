@@ -68,9 +68,3 @@ app/.build
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-
-
-# -------------------------
-# Old frontend backup
-# -------------------------
-app_frontend_backup/
